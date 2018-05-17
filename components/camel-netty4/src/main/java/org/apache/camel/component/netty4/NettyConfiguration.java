@@ -112,6 +112,8 @@ public class NettyConfiguration extends NettyServerBootstrapConfiguration implem
     private boolean reuseChannel;
     @UriParam(label = "producer,advanced")
     private NettyCamelStateCorrelationManager correlationManager;
+    @UriParam(label = "common")
+    private String sharedChannelKey;
 
     /**
      * Returns a copy of this configuration
@@ -662,6 +664,25 @@ public class NettyConfiguration extends NettyServerBootstrapConfiguration implem
      */
     public void setReuseChannel(boolean reuseChannel) {
         this.reuseChannel = reuseChannel;
+    }
+
+
+    public String getSharedChannelKey() {
+        return sharedChannelKey;
+    }
+
+    /**
+     * This option allows producers and consumers (in client or in server mode) to reuse the same Netty {@link Channel}
+     * for the lifecycle of processing the {@link CamelContext}.
+     * This is useful if you need to send an initialization packet (subscription) to a server to initiate the conversation
+     * with the server.
+     * The shared Channel is identified by a String, so it is possible to use multiple shared Channels by giving them
+     * distinct names.
+     * The Channel is saved in the CamelContext.Registry map.
+     * @param sharedChannelKey
+     */
+    public void setSharedChannelKey(String sharedChannelKey) {
+        this.sharedChannelKey = sharedChannelKey;
     }
 
     public NettyCamelStateCorrelationManager getCorrelationManager() {

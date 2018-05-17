@@ -5,9 +5,9 @@
  * The ASF licenses this file to You under the Apache License, Version 2.0
  * (the "License"); you may not use this file except in compliance with
  * the License.  You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
+ * <p>
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * <p>
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -44,6 +44,7 @@ import org.apache.camel.CamelContextAware;
 import org.apache.camel.CamelExchangeException;
 import org.apache.camel.Exchange;
 import org.apache.camel.impl.DefaultAsyncProducer;
+import org.apache.camel.spi.Registry;
 import org.apache.camel.support.SynchronizationAdapter;
 import org.apache.camel.util.CamelLogger;
 import org.apache.camel.util.ExchangeHelper;
@@ -54,9 +55,14 @@ import org.apache.commons.pool.PoolableObjectFactory;
 import org.apache.commons.pool.impl.GenericObjectPool;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.apache.camel.impl.PropertyPlaceholderDelegateRegistry;
+import org.apache.camel.impl.SimpleRegistry;
+
+import java.util.concurrent.locks.ReentrantLock;
 
 public class NettyProducer extends DefaultAsyncProducer {
     private static final Logger LOG = LoggerFactory.getLogger(NettyProducer.class);
+    private static final ReentrantLock sharedChannelLock = new ReentrantLock();
     private ChannelGroup allChannels;
     private CamelContext context;
     private NettyConfiguration configuration;
@@ -65,12 +71,19 @@ public class NettyProducer extends DefaultAsyncProducer {
     private EventLoopGroup workerGroup;
     private ObjectPool<ChannelFuture> pool;
     private NettyCamelStateCorrelationManager correlationManager;
+    SimpleRegistry myRegistry
 
     public NettyProducer(NettyEndpoint nettyEndpoint, NettyConfiguration configuration) {
         super(nettyEndpoint);
         this.configuration = configuration;
         this.context = this.getEndpoint().getCamelContext();
         this.noReplyLogger = new CamelLogger(LOG, configuration.getNoReplyLogLevel());
+
+        Registry registry = context.getRegistry();
+        if (registry instanceof PropertyPlaceholderDelegateRegistry) {
+            registry = ((PropertyPlaceholderDelegateRegistry) registry).getRegistry();
+        }
+        myRegistry = (SimpleRegistry) registry;
     }
 
     @Override
@@ -110,13 +123,13 @@ public class NettyProducer extends DefaultAsyncProducer {
         ServiceHelper.startService(correlationManager);
 
         if (configuration.getWorkerGroup() == null) {
-            // create new pool which we should shutdown when stopping as its not shared
+            // create new pool which we should shutdown when stopping as it's not shared
             workerGroup = new NettyWorkerPoolBuilder()
-                .withNativeTransport(configuration.isNativeTransport())
-                .withWorkerCount(configuration.getWorkerCount())
-                .withName("NettyClientTCPWorker").build();
+                    .withNativeTransport(configuration.isNativeTransport())
+                    .withWorkerCount(configuration.getWorkerCount())
+                    .withName("NettyClientTCPWorker").build();
         }
-               
+
         if (configuration.isProducerPoolEnabled()) {
             // setup pool where we want an unbounded pool, which allows the pool to shrink on no demand
             GenericObjectPool.Config config = new GenericObjectPool.Config();
@@ -158,7 +171,7 @@ public class NettyProducer extends DefaultAsyncProducer {
         } else {
             allChannels = configuration.getChannelGroup();
         }
-        
+
         if (!configuration.isLazyChannelCreation()) {
             // ensure the connection can be established when we start up
             ChannelFuture channelFuture = pool.borrowObject();
@@ -236,6 +249,30 @@ public class NettyProducer extends DefaultAsyncProducer {
         try {
             if (getConfiguration().isReuseChannel()) {
                 channel = exchange.getProperty(NettyConstants.NETTY_CHANNEL, Channel.class);
+            } else {
+                String sharedChannelKey = getConfiguration().getSharedChannelKey();
+                if (sharedChannelKey != null) {
+                    // Use a shared Channel, if it is defined
+
+                    // Find url option sharedSocket=sharedname
+                    sharedChannelLock.lock();
+                    try {
+                        // Find shared socket with name
+                        channel=myRegistry.lookupByNameAndType(sharedChannelKey,Channel.class);
+                        if (channel == null) {
+                            // This was the first reference to the sharedChannel, create it and save it
+                            channelFuture = pool.borrowObject();
+                            if (channelFuture != null) {
+                                LOG.trace("Got channel request from pool as sharedChannel {}", channelFuture);
+                                myRegistry.put(sharedChannelKey,channelFuture.channel());
+                            }
+                        } else {
+                            channelFuture = channel.newSucceededFuture();
+                        }
+                    } finally {
+                        sharedChannelLock.unlock();
+                    }
+                }
             }
             if (channel == null) {
                 channelFuture = pool.borrowObject();
@@ -322,7 +359,7 @@ public class NettyProducer extends DefaultAsyncProducer {
         // here we need to setup the remote address information here
         InetSocketAddress remoteAddress = null;
         if (!isTcp()) {
-            remoteAddress = new InetSocketAddress(configuration.getHost(), configuration.getPort()); 
+            remoteAddress = new InetSocketAddress(configuration.getHost(), configuration.getPort());
         }
 
         // write body
@@ -457,7 +494,7 @@ public class NettyProducer extends DefaultAsyncProducer {
 
             // set the pipeline factory, which creates the pipeline for each newly created channels
             connectionlessClientBootstrap.handler(pipelineFactory);
-           
+
             // if udp connectionless sending is true we don't do a connect.
             // we just send on the channel created with bind which means
             // really fire and forget. You wont get an PortUnreachableException
@@ -473,7 +510,7 @@ public class NettyProducer extends DefaultAsyncProducer {
 
             if (LOG.isDebugEnabled()) {
                 LOG.debug("Created new UDP client bootstrap connecting to {}:{} with options: {}",
-                       new Object[]{configuration.getHost(), configuration.getPort(), connectionlessClientBootstrap});
+                        new Object[]{configuration.getHost(), configuration.getPort(), connectionlessClientBootstrap});
             }
             return answer;
         }
@@ -523,6 +560,10 @@ public class NettyProducer extends DefaultAsyncProducer {
 
     public ChannelGroup getAllChannels() {
         return allChannels;
+    }
+
+    public static ReentrantLock getSharedChannelLock() {
+        return sharedChannelLock;
     }
 
     /**
