@@ -18,6 +18,8 @@ package org.apache.camel.component.netty4;
 
 import java.net.ConnectException;
 import java.net.InetSocketAddress;
+import java.util.Map;
+import java.util.HashMap;
 import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.TimeUnit;
 
@@ -44,7 +46,6 @@ import org.apache.camel.CamelContextAware;
 import org.apache.camel.CamelExchangeException;
 import org.apache.camel.Exchange;
 import org.apache.camel.impl.DefaultAsyncProducer;
-import org.apache.camel.spi.Registry;
 import org.apache.camel.support.SynchronizationAdapter;
 import org.apache.camel.util.CamelLogger;
 import org.apache.camel.util.ExchangeHelper;
@@ -55,14 +56,15 @@ import org.apache.commons.pool.PoolableObjectFactory;
 import org.apache.commons.pool.impl.GenericObjectPool;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.apache.camel.impl.PropertyPlaceholderDelegateRegistry;
-import org.apache.camel.impl.SimpleRegistry;
 
 import java.util.concurrent.locks.ReentrantLock;
 
 public class NettyProducer extends DefaultAsyncProducer {
     private static final Logger LOG = LoggerFactory.getLogger(NettyProducer.class);
+    // Objects for shared Channels. They are defined here in NettyProducer.java, but maybe they should go
+    // into NettyConfiguration?
     private static final ReentrantLock sharedChannelLock = new ReentrantLock();
+    private static final Map<String,Channel> sharedChannelMap=new HashMap<String,Channel>();
     private ChannelGroup allChannels;
     private CamelContext context;
     private NettyConfiguration configuration;
@@ -71,19 +73,12 @@ public class NettyProducer extends DefaultAsyncProducer {
     private EventLoopGroup workerGroup;
     private ObjectPool<ChannelFuture> pool;
     private NettyCamelStateCorrelationManager correlationManager;
-    SimpleRegistry myRegistry
 
     public NettyProducer(NettyEndpoint nettyEndpoint, NettyConfiguration configuration) {
         super(nettyEndpoint);
         this.configuration = configuration;
         this.context = this.getEndpoint().getCamelContext();
         this.noReplyLogger = new CamelLogger(LOG, configuration.getNoReplyLogLevel());
-
-        Registry registry = context.getRegistry();
-        if (registry instanceof PropertyPlaceholderDelegateRegistry) {
-            registry = ((PropertyPlaceholderDelegateRegistry) registry).getRegistry();
-        }
-        myRegistry = (SimpleRegistry) registry;
     }
 
     @Override
@@ -250,21 +245,22 @@ public class NettyProducer extends DefaultAsyncProducer {
             if (getConfiguration().isReuseChannel()) {
                 channel = exchange.getProperty(NettyConstants.NETTY_CHANNEL, Channel.class);
             } else {
-                String sharedChannelKey = getConfiguration().getSharedChannelKey();
+                String sharedChannelKey = getConfiguration().getSharedChannel();
                 if (sharedChannelKey != null) {
                     // Use a shared Channel, if it is defined
 
-                    // Find url option sharedSocket=sharedname
+                    // Find url option sharedChannel=sharedname
                     sharedChannelLock.lock();
                     try {
-                        // Find shared socket with name
-                        channel=myRegistry.lookupByNameAndType(sharedChannelKey,Channel.class);
+                        // Find shared channel/socket with sharedCnannelKey
+                        channel=sharedChannelMap.get(sharedChannelKey);
                         if (channel == null) {
                             // This was the first reference to the sharedChannel, create it and save it
                             channelFuture = pool.borrowObject();
                             if (channelFuture != null) {
                                 LOG.trace("Got channel request from pool as sharedChannel {}", channelFuture);
-                                myRegistry.put(sharedChannelKey,channelFuture.channel());
+                                channel=channelFuture.channel();
+                                sharedChannelMap.put(sharedChannelKey,channel);
                             }
                         } else {
                             channelFuture = channel.newSucceededFuture();

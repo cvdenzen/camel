@@ -113,7 +113,7 @@ public class NettyConfiguration extends NettyServerBootstrapConfiguration implem
     @UriParam(label = "producer,advanced")
     private NettyCamelStateCorrelationManager correlationManager;
     @UriParam(label = "common")
-    private String sharedChannelKey;
+    private String sharedChannel;
 
     /**
      * Returns a copy of this configuration
@@ -667,8 +667,8 @@ public class NettyConfiguration extends NettyServerBootstrapConfiguration implem
     }
 
 
-    public String getSharedChannelKey() {
-        return sharedChannelKey;
+    public String getSharedChannel() {
+        return sharedChannel;
     }
 
     /**
@@ -679,10 +679,10 @@ public class NettyConfiguration extends NettyServerBootstrapConfiguration implem
      * The shared Channel is identified by a String, so it is possible to use multiple shared Channels by giving them
      * distinct names.
      * The Channel is saved in the CamelContext.Registry map.
-     * @param sharedChannelKey
+     * @param sharedChannel
      */
-    public void setSharedChannelKey(String sharedChannelKey) {
-        this.sharedChannelKey = sharedChannelKey;
+    public void setSharedChannel(String sharedChannel) {
+        this.sharedChannel = sharedChannel;
     }
 
     public NettyCamelStateCorrelationManager getCorrelationManager() {

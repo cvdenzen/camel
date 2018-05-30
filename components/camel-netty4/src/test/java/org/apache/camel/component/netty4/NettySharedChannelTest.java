@@ -29,12 +29,12 @@ import org.junit.Test;
 /**
  * @version 
  */
-public class NettySharedSocketTest extends BaseNettyTest {
+public class NettySharedChannelTest extends BaseNettyTest {
 
     private final List<Channel> channels = new ArrayList<>();
 
     @Test
-    public void testReuse() throws Exception {
+    public void testSharedChannel() throws Exception {
         NotifyBuilder notify = new NotifyBuilder(context).whenDone(1).create();
 
         getMockEndpoint("mock:a").expectedBodiesReceived("Hello World");
@@ -59,7 +59,7 @@ public class NettySharedSocketTest extends BaseNettyTest {
             @Override
             public void configure() throws Exception {
                 from("direct:start")
-                    .to("netty4:tcp://localhost:{{port}}?textline=true&sync=true&sharedSocket=socket1&disconnect=true")
+                    .to("netty4:tcp://localhost:{{port}}?textline=true&sync=true&sharedChannel=channel1&disconnect=true")
                     .process(new Processor() {
                         @Override
                         public void process(Exchange exchange) throws Exception {
@@ -69,7 +69,7 @@ public class NettySharedSocketTest extends BaseNettyTest {
                         }
                     })
                     .to("mock:a")
-                    .to("netty4:tcp://localhost:{{port}}?textline=true&sync=true&sharedSocket=socket1&disconnect=true")
+                    .to("netty4:tcp://localhost:{{port}}?textline=true&sync=true&sharedChannel=channel1&disconnect=true")
                     .process(new Processor() {
                         @Override
                         public void process(Exchange exchange) throws Exception {
@@ -80,7 +80,7 @@ public class NettySharedSocketTest extends BaseNettyTest {
                     })
                     .to("mock:b");
 
-                from("netty4:tcp://localhost:{{port}}?textline=true&sync=true&sharedSocket=socket1")
+                from("netty4:tcp://localhost:{{port}}?textline=true&sync=true&sharedChannel=channel1")
                     .transform(body().prepend("Hello "))
                     .to("mock:result");
             }

@@ -688,6 +688,17 @@ This provides support for timeout and other complexities you otherwise would nee
 You can find an example with the Apache Camel source code in the examples directory
 under the `camel-example-netty-custom-correlation` directory.
 
+=== A publish/subscribe client
+
+A typical publish/subscribe client will write the subscription data to the server and will then wait for messages
+to be published to it.
+Up to now (Camel v 2.21.1) there is no way to do this in Camel.
+A solution could be to share a channel between a producer (e.g. in a Java DSL to() method) and a consumer (e.g. in a
+Java DSL from() method). The producer and the consumer will both open the same channel (and hence the same socket connection).
+The producer will then send the subscription data to the server and it will quit. The channel will still be alive because
+it is also used by a consumer (possibly in another route).
+To make it possible to use multiple publish/subscribe servers, the sharedChannels are named.
+
 === See Also
 
 * <<netty-http-component,Netty HTTP>>
