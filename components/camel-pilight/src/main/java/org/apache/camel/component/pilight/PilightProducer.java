@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.camel.component.netty4;
+package org.apache.camel.component.pilight;
 
 import java.net.ConnectException;
 import java.net.InetSocketAddress;
@@ -61,7 +61,7 @@ import java.util.concurrent.locks.ReentrantLock;
 
 public class NettyProducer extends DefaultAsyncProducer {
     private static final Logger LOG = LoggerFactory.getLogger(NettyProducer.class);
-    // Objects for shared Channels. They are defined here in NettyProducer.java, but maybe they should go
+    // Objects for shared Channels. They are defined here in PilightProducer.java, but maybe they should go
     // into NettyConfiguration?
     private static final ReentrantLock sharedChannelLock = new ReentrantLock();
     private static final Map<String,Channel> sharedChannelMap=new HashMap<String,Channel>();
