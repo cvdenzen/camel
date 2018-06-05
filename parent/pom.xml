@@ -497,6 +497,8 @@
     <milo-version>0.2.1</milo-version>
     <mina-bundle-version>1.1.7_6</mina-bundle-version>
     <mina-version>1.1.7</mina-version>
+    <pilight-bundle-version>1.1.7_6</pilight-bundle-version>
+    <pilight-version>1.1.7</pilight-version>
     <mina2-version>2.0.17</mina2-version>
     <minimal-json-version>0.9.4</minimal-json-version>
     <mock-javamail-version>1.9</mock-javamail-version>
@@ -1628,6 +1630,11 @@
       <dependency>
         <groupId>org.apache.camel</groupId>
         <artifactId>camel-mina</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.apache.camel</groupId>
+        <artifactId>camel-pilight</artifactId>
         <version>${project.version}</version>
       </dependency>
       <dependency>
