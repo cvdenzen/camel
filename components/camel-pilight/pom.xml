@@ -44,6 +44,21 @@
             <artifactId>camel-core</artifactId>
         </dependency>
 
+        <dependency>
+            <groupId>org.apache.mina</groupId>
+            <artifactId>mina-core</artifactId>
+            <exclusions>
+                <exclusion>
+                    <groupId>org.slf4j</groupId>
+                    <artifactId>slf4j-simple</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>org.slf4j</groupId>
+                    <artifactId>slf4j-api</artifactId>
+                </exclusion>
+            </exclusions>
+            <version>${mina-version}</version>
+        </dependency>
         <!-- testing -->
         <dependency>
             <groupId>org.apache.camel</groupId>
