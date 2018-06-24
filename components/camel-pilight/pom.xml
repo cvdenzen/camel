@@ -44,7 +44,7 @@
             <artifactId>camel-core</artifactId>
         </dependency>
 
-        <!--dependency>
+        <dependency>
             <groupId>org.apache.mina</groupId>
             <artifactId>mina-core</artifactId>
             <exclusions>
@@ -58,7 +58,7 @@
                 </exclusion>
             </exclusions>
             <version>${mina-version}</version>
-        </dependency -->
+        </dependency>
         <!-- testing -->
         <dependency>
             <groupId>org.apache.camel</groupId>
