@@ -44,7 +44,7 @@
             <artifactId>camel-core</artifactId>
         </dependency>
 
-        <dependency>
+        <!--dependency>
             <groupId>org.apache.mina</groupId>
             <artifactId>mina-core</artifactId>
             <exclusions>
@@ -58,7 +58,7 @@
                 </exclusion>
             </exclusions>
             <version>${mina-version}</version>
-        </dependency>
+        </dependency -->
         <!-- testing -->
         <dependency>
             <groupId>org.apache.camel</groupId>
@@ -100,7 +100,7 @@
                     <forkedProcessTimeoutInSeconds>1800</forkedProcessTimeoutInSeconds>
                     <excludes>
                         <!-- This test just show the shutdown error -->
-                        <exclude>**/MinaProducerShutdownTest.*</exclude>
+                        <exclude>**/PilightProducerShutdownTest.*</exclude>
                     </excludes>
                 </configuration>
             </plugin>
@@ -110,7 +110,7 @@
                 <groupId>org.codehaus.mojo</groupId>
                 <artifactId>exec-maven-plugin</artifactId>
                 <configuration>
-                    <mainClass>org.apache.camel.component.pilight.MinaProducerShutdownTest</mainClass>
+                    <mainClass>org.apache.camel.component.pilight.PilightProducerShutdownTest</mainClass>
                     <includePluginDependencies>false</includePluginDependencies>
                 </configuration>
             </plugin>
